@@ -4,19 +4,19 @@ from pyaramorph.pyaramorph import Analyzer
 pyaramorph = Analyzer()
 
 def preprocessBeforeBama(ar_text):
-    ar_text = re.sub("([().,])", r" \1 ", ar_text)
-    ar_text = re.sub("\s+", " ", ar_text)
+    ar_text = re.sub(u"([().,])", u" \\1 ", ar_text)
+    ar_text = re.sub(u"\s+", u" ", ar_text)
     return ar_text
 
 def runBama(ar_text):
     #Has to be windows-1256 for BAMA?
-    outfh = codecs.open("ptemp0.txt","w","windows-1256")
+    outfh = codecs.open("ptemp0.txt", "w", "windows-1256")
     outfh.write(ar_text)
     outfh.close()
 
     os.system("./bama/aramorph.sh ptemp0.txt ptemp1.txt 2> /dev/null")
 
-    infh = codecs.open("ptemp1.txt","r")
+    infh = codecs.open("ptemp1.txt", "r", "utf-8")
     bama_pos = infh.read().strip()
     infh.close()
 
@@ -24,7 +24,7 @@ def runBama(ar_text):
 
 def runPyBama(ar_text):
     bama_pos_list = []
-    for ar_word in ar_text.split(" "):
+    for ar_word in ar_text.split(u" "):
         bw_word = ar2bw(ar_word)
 
         results = pyaramorph.analyze(bw_word)
@@ -32,27 +32,27 @@ def runPyBama(ar_text):
         if len(results) > 0:
             for res in results:
 
-                print "RES:", res
+                print u"RES:", res
 
-                res_lines = res.split("\n")
+                res_lines = res.split(u"\n")
                 pos_line = res_lines[1].strip()
-                pos_line = re.sub("pos:\s+", "", pos_line)
+                pos_line = re.sub(u"pos:\s+", u"", pos_line)
                 bama_pos_list.append(pos_line)
         bama_pos_list.append("") #word separator!
 
-    bama_pos = "\n".join(bama_pos_list)
+    bama_pos = u"\n".join(bama_pos_list)
     return bama_pos
 
 #Todo: these two should be the same (= the second one), change following to allow
 #word+analysis in both cases
 def runPyBama2(ar_text):
     bama_pos_list = []
-    for ar_word in ar_text.split(" "):
+    for ar_word in ar_text.split(u" "):
         bw_word = ar2bw(ar_word)
 
         #Remove any diacritics before bama lookup
-        bw_word = re.sub("[FNKauio~]", "", bw_word)
-        print "bw_word:", bw_word
+        bw_word = re.sub(u"[FNKauio~]", u"", bw_word)
+        print u"bw_word:", bw_word
 
 
         bama_pos_list.append(bw_word)
@@ -62,32 +62,32 @@ def runPyBama2(ar_text):
         if len(results) > 0:
             for res in results:
 
-                print "RES:", res
+                print u"RES:", res
 
-                res_lines = res.split("\n")
+                res_lines = res.split(u"\n")
                 solution_line = res_lines[0].strip()
-                m = re.search(" ([^ \)]+)\)", solution_line)
+                m = re.search(u" ([^ \)]+)\)", solution_line)
                 vocalised_word = m.group(1)
                 pos_line = res_lines[1].strip()
-                pos_line = re.sub("pos:\s+", "", pos_line)
-                bama_pos_list.append(vocalised_word+" "+pos_line)
-        bama_pos_list.append("") #word separator!
+                pos_line = re.sub(u"pos:\s+", u"", pos_line)
+                bama_pos_list.append(vocalised_word + u" " + pos_line)
+        bama_pos_list.append(u"") #word separator!
 
-    bama_pos = "\n".join(bama_pos_list)
+    bama_pos = u"\n".join(bama_pos_list)
     return bama_pos
 
 
 def filterWithPreVocalised(ar_text, bama_pos):
 
-    ar_words = ar_text.split(" ")
+    ar_words = ar_text.split(u" ")
 
 
-    sentences = re.split("\p{P}\¡\n", bama_pos)
+    sentences = re.split(u"\p{P}\¡\n", bama_pos)
     newSentences = []
     for sentence in sentences:
         #sys.stderr.write("SENTENCE: "+sentence+"\n")
         #Double newlines separate words
-        words = sentence.split("\n\n")
+        words = sentence.split(u"\n\n")
         newWords = []
 
         i = 0
@@ -95,26 +95,26 @@ def filterWithPreVocalised(ar_text, bama_pos):
             ar_word = ar_words[i]
             word = words[i]
 
-            options = word.strip().split("\n")
+            options = word.strip().split(u"\n")
             unvocWord = options[0]
             options = options[1:]
             newOptions = [unvocWord]
             for option in options:
                 #print "OPTION:", option
-                solution = option.split(" ")[0]
+                solution = option.split(u" ")[0]
                 if matchVocalisation(ar_word, solution):
                     newOptions.append(option)
-            newWord = "\n".join(newOptions)
+            newWord = u"\n".join(newOptions)
             newWords.append(newWord)
             i += 1
-        newSentences.append("\n\n".join(newWords))
-    return "\p{P}\¡\n".join(newSentences)
+        newSentences.append(u"\n\n".join(newWords))
+    return u"\p{P}\¡\n".join(newSentences)
 
 def matchVocalisationOLD(ar_word, solution):
     #doesn't work in a case like "sa" "s", they will match
     bw_word = ar2bw(ar_word)
-    print "matchVocalisation", bw_word, solution,
-    if not re.search("[FNKauio~]", bw_word):
+    print u"matchVocalisation", bw_word, solution,
+    if not re.search(u"[FNKauio~]", bw_word):
         print "True"
         return True
     else:
@@ -127,10 +127,10 @@ def matchVocalisationOLD(ar_word, solution):
             if cw == cs:
                 i += 1
                 j += 1
-            elif i+1 < len(solution) and cs in "FNKauio" and solution[i+1] == cw:
+            elif i+1 < len(solution) and cs in u"FNKauio" and solution[i+1] == cw:
                 i += 2
                 j += 1
-            elif i+2 < len(solution) and cs == "~" and solution[i+1] in "FNKauio" and solution[i+2] == cw:
+            elif i+2 < len(solution) and cs == u"~" and solution[i+1] in u"FNKauio" and solution[i+2] == cw:
                 i += 3
                 j += 1
             else:            
@@ -142,7 +142,7 @@ def matchVocalisationOLD(ar_word, solution):
 def matchVocalisation(ar_word, solution):
     bw_word = ar2bw(ar_word)
     print "matchVocalisation", bw_word, solution,
-    if not re.search("[FNKauio~]", bw_word):
+    if not re.search(u"[FNKauio~]", bw_word):
         print "True"
         return True
     else:
@@ -151,11 +151,11 @@ def matchVocalisation(ar_word, solution):
 
         #normalise order of shadda+other diacritic, shadda should come first! example is التاريخيَّة
         #where it doesn't (taken from web page): bw AltAryxya~p
-        w_rest = re.sub("([FNKauio])(~)",r"\2\1",w_rest)
+        w_rest = re.sub(u"([FNKauio])(~)",u"\\2\\1",w_rest)
 
 
-        while s_rest != "":
-            w_m = re.match(r"^(.)(~?)(%s?)(.*)$" % "[FNKauio]", w_rest)
+        while s_rest != u"":
+            w_m = re.match(r"^(.)(~?)(%s?)(.*)$" % u"[FNKauio]", w_rest)
             w_letter = w_m.group(1)
             w_shadda = w_m.group(2)
             w_voc = w_m.group(3)
@@ -191,19 +191,19 @@ def matchVocalisation(ar_word, solution):
 def convertBamaToSrilm(bama_pos):
     result = []
     #TODO what does this regexp mean?? I have no example at the moment with multiple sentences
-    sentences = re.split("\p{P}\¡\n", bama_pos)
+    sentences = re.split(u"\p{P}\¡\n", bama_pos)
     for sentence in sentences:
         #sys.stderr.write("SENTENCE: "+sentence+"\n")
         #Double newlines separate words
-        words = sentence.split("\n\n")
+        words = sentence.split(u"\n\n")
 
         if len(words) > 0:
-            result.append("<s> *noevent*\n")
+            result.append(u"<s> *noevent*\n")
             for word in words:
                 word = word.strip()
                 #sys.stderr.write("WORD: "+word+"\n")
                 #newline separates readings
-                options = word.split("\n")
+                options = word.split(u"\n")
 
                 #The first is the unvocalised word (using runPyBama2)
                 options = options[1:]
@@ -212,22 +212,22 @@ def convertBamaToSrilm(bama_pos):
 
                 #If there are no tags, i.e unknown word
                 if len(tagList) == 0:
-                    tagList = ["P", "T", "NDG", "NDA", "NDN", "NUG", "NUA", "NUN", "P+NDG", "P+NUG", "VIM", "VPR", "VIJ", "VIS", "VID"]
+                    tagList = [u"P", u"T", u"NDG", u"NDA", u"NDN", u"NUG", u"NUA", u"NUN", u"P+NDG", u"P+NUG", u"VIM", u"VPR", u"VIJ", u"VIS", u"VID"]
 
                 optionsList = []
                 for tag in tagList:
                     #Todo higher probability in case of TT and P
-                    optionsString = "%s %.6f" % (tag, 1.0/len(tagList))
+                    optionsString = u"%s %.6f" % (tag, 1.0/len(tagList))
                     optionsList.append(optionsString)
 
                     
 
 
-                result.append("w %s\n" % " ".join(optionsList))
-            result.append("</s> *noevent*\n")
+                result.append(u"w %s\n" % " ".join(optionsList))
+            result.append(u"</s> *noevent*\n")
         #result.append("<s> *noevent*\r\n</s> *noevent*\n")
         #the above is in case there is no word in the sentence?
-    resultString = "".join(result).strip()
+    resultString = u"".join(result).strip()
 
     return resultString
 
@@ -236,11 +236,11 @@ def convertBAMAtag(options):
     optionsList = []
 
     for option in options:
-        sys.stderr.write("OPTION: %s, type: %s\n" % (option, type(option)))
+        sys.stderr.write(u"OPTION: %s, type: %s\n" % (option, type(option)))
 
         #using runPyBama2 there is "word analysis" in each, only the analysis is wanted here
-        if " " in option:
-            option = option.split(" ")[1]
+        if u" " in option:
+            option = option.split(u" ")[1]
 
         P = False
         N = False
@@ -252,34 +252,34 @@ def convertBAMAtag(options):
         C = False
         DP = False
 
-        BAMATags = option.split("+")
+        BAMATags = option.split(u"+")
         for BAMATag in BAMATags:
 
             #sys.stderr.write("BAMATag: "+BAMATag+"\n")
 
             #If there is no bama tag at all
             #TODO mark this in some way, it means a words should be added to the dictionary
-            if not "/" in BAMATag:
+            if not u"/" in BAMATag:
                 continue
 
-            curTag = BAMATag.split("/")[1]
+            curTag = BAMATag.split(u"/")[1]
 
-            if curTag == "P" or curTag == "PREP":
+            if curTag == u"P" or curTag == u"PREP":
                 P = True
-            elif curTag == "N" or curTag == "ADJ" or curTag == "NOUN" or curTag == "NOUN_PROP" or curTag == "PROP_NOUN":
+            elif curTag == u"N" or curTag == u"ADJ" or curTag == u"NOUN" or curTag == u"NOUN_PROP" or curTag == u"PROP_NOUN":
                 N = True
-            elif curTag == "VPR" or curTag == "VERB_PERFECT":
+            elif curTag == u"VPR" or curTag == u"VERB_PERFECT":
                 V = True
-            elif curTag == "VI" or curTag == "VERB_IMPERFECT":
+            elif curTag == u"VI" or curTag == u"VERB_IMPERFECT":
                 V = True
                 I = True
-            elif curTag == "VIM" or curTag == "VERB_IMPERATIVE":
+            elif curTag == u"VIM" or curTag == u"VERB_IMPERATIVE":
                 I = True
-            elif curTag == "D" or curTag == "DET":
+            elif curTag == u"D" or curTag == u"DET":
                 D = True
-            elif curTag == "ABBREV":
+            elif curTag == u"ABBREV":
                 A = True
-            elif curTag == "CONJ":
+            elif curTag == u"CONJ":
                 C = True
             else:
                 T = True
@@ -287,71 +287,71 @@ def convertBAMAtag(options):
         if N:
             if D:
                 if P:
-                    optionsList.append("P+NDG")
+                    optionsList.append(u"P+NDG")
                 else:
-                    optionsList.append("NDG")
-                    optionsList.append("NDN")
-                    optionsList.append("NDA")
+                    optionsList.append(u"NDG")
+                    optionsList.append(u"NDN")
+                    optionsList.append(u"NDA")
             else:
                 if P:
-                    optionsList.append("P+NUG")
+                    optionsList.append(u"P+NUG")
                 else:
-                    optionsList.append("NUG")
-                    optionsList.append("NUN")
-                    optionsList.append("NUA")
+                    optionsList.append(u"NUG")
+                    optionsList.append(u"NUN")
+                    optionsList.append(u"NUA")
         elif V:
             if I:
-                optionsList.append("VIJ")
-                optionsList.append("VIS")
-                optionsList.append("VID")
+                optionsList.append(u"VIJ")
+                optionsList.append(u"VIS")
+                optionsList.append(u"VID")
             else:
-                optionsList.append("VPR")
+                optionsList.append(u"VPR")
         elif I:
-            optionsList.append("VIM")
+            optionsList.append(u"VIM")
         elif P:
             if T:
-                optionsList.append("P")
+                optionsList.append(u"P")
             else:
                 #optionsList.append("TT") error?? TT is not in POSNgrams/vocab
-                optionsList.append("T")
+                optionsList.append(u"T")
         elif A:
-            optionsList.append("A")
+            optionsList.append(u"A")
         else:
-            optionsList.append("T")
+            optionsList.append(u"T")
 
         #sys.stderr.write("OPTIONSLIST: "+str(optionsList)+"\n")
 
-    if "A" in optionsList and not "P" in optionsList:
-        optionsList.append("T")
+    if u"A" in optionsList and not u"P" in optionsList:
+        optionsList.append(u"T")
 
     #remove duplicates
     optionsList = list(set(optionsList))
-    if "A" in optionsList:
-        optionsList.remove("A")
+    if u"A" in optionsList:
+        optionsList.remove(u"A")
 
     return optionsList
 
 
 def runSRILM(srilm_pos):
-    outfh = codecs.open("ptemp2.txt","w")
+    outfh = codecs.open("ptemp2.txt", "w", "utf-8")
     outfh.write(srilm_pos)
     outfh.close()
 
-    os.system("./ngram/hidden-ngram -lm ngram/POSNgrams/taggerNgram4.txt -order 4 -text-map ptemp2.txt -hidden-vocab ngram/POSNgrams/vocab.txt > ptemp2a.txt")
+	os.system("./ngram/hidden-ngram -lm ngram/POSNgrams/taggerNgram4.txt -order 4 -text-map ptemp2.txt -hidden-vocab ngram/POSNgrams/vocab.txt > ptemp2a.txt")
 
-    infh = codecs.open("ptemp2a.txt","r")
+    infh = codecs.open("ptemp2a.txt","r", "utf-8")
     srilm_pos = infh.read()
     infh.close()
     return srilm_pos
 
 def removeSentenceBoundaries(res):
-    res = re.sub("</s>", "", res).strip()
-    res = re.sub("<s>", "", res)
-    res = re.sub("\n", "*noevent*", res)
-    res = re.sub(" +", " ", res).strip()
-    res = re.sub("w ", "", res).strip()
+    res = re.sub(u"</s>", u"", res).strip()
+    res = re.sub(u"<s>", u"", res)
+    res = re.sub(u"\n", u"*noevent*", res)
+    res = re.sub(u" +", u" ", res).strip()
+    res = re.sub(u"w ", u"", res).strip()
 
-    outfh = codecs.open("ptemp3.txt","w")
+    outfh = codecs.open("ptemp3.txt", "w", "utf-8")
     outfh.write(res)
     outfh.close()
 
@@ -365,26 +365,26 @@ def runBamaWithTags(ar_text):
 
     os.system("./bama/aramorphWithTags.sh ptemp4.txt ptemp5.txt 2> /dev/null")
 
-    infh = codecs.open("ptemp5.txt","r")
+    infh = codecs.open("ptemp5.txt", "r", "utf-8")
     bama_pos = infh.read()
     infh.close()
 
     return bama_pos
 
-def filterBamaWithTags(bama_pos, srilm_pos):
+def filterBamaWithTags(bama_pos, srilm_pos, addCaseEndings):
 
     #What is right? It sounds odd to me with case endings but who am I to judge..
     addCaseEndings = False
 
-    taggedBAMA = bama_pos.split("\n\n")
-    taggedWords = srilm_pos.split(" ")
+    taggedBAMA = bama_pos.split(u"\n\n")
+    taggedWords = srilm_pos.split(u" ")
     i = 0
     res = []
 
     #Punctuation can affect this
     #    while i < len(taggedBAMA):
     while i < len(taggedWords):
-        options = taggedBAMA[i].strip().split("\n")
+        options = taggedBAMA[i].strip().split(u"\n")
         pos = taggedWords[i]
 
         #sys.stderr.write(options[0]+" "+pos+"\n")
@@ -393,10 +393,10 @@ def filterBamaWithTags(bama_pos, srilm_pos):
         res.append(options[0])
 
         for option in options[1:]:
-            (voc, bama_tag) = option.split(" ")
-            sys.stderr.write("V: %s, T: %s\n" % (voc, bama_tag))
+            (voc, bama_tag) = option.split(u" ")
+            sys.stderr.write(u"V: %s, T: %s\n" % (voc, bama_tag))
             tags = convertBAMAtag([bama_tag])
-            sys.stderr.write("Word: %s, Tags: %s, Pos: %s\n" % (voc, tags, pos))
+            sys.stderr.write(u"Word: %s, Tags: %s, Pos: %s\n" % (voc, tags, pos))
             #add the vocalised form if the tag matches
             if pos in tags:
                 #TODO also add stuff to do with gemination after Al, and case endings
@@ -419,30 +419,30 @@ def filterBamaWithTags(bama_pos, srilm_pos):
 
 
                 #If it's a definite noun
-                sun_letters = "tTdDsSzZlrn\$\*"
-                if "ND" in pos:
+                sun_letters = u"tTdDsSzZlrn\$\*"
+                if u"ND" in pos:
                     #can there be an l before the def art l? preposition!
 
-                    if re.search("^([^l]+)l(["+sun_letters+"])(.+)$", voc):
+                    if re.search(u"^([^l]+)l([" + sun_letters + u"])(.+)$", voc):
                         #def.art + sun letter
                         #AlTifol -> AlT~ifol
-                        newVoc = re.sub("^([^l]+)l(["+sun_letters+"])(.+)$", r"\1l\2~\3", voc)
-                        sys.stderr.write("newVoc (sun): "+newVoc+"\n")
+                        newVoc = re.sub(u"^([^l]+)l([" + sun_letters + u"])(.+)$", u"\\1l\\2~\\3", voc)
+                        sys.stderr.write(u"newVoc (sun): " + newVoc + u"\n")
                     else:
                         #def.art + moon letter
-                        newVoc = re.sub("^([^l]+)l(.)(.+)$", r"\1lo\2\3", voc)
-                        sys.stderr.write("newVoc (moon): "+newVoc+"\n")
+                        newVoc = re.sub(u"^([^l]+)l(.)(.+)$", u"\\1lo\\2\\3", voc)
+                        sys.stderr.write(u"newVoc (moon): " + newVoc + u"\n")
 
                     if addCaseEndings:
-                        if "NDG" in pos:
+                        if u"NDG" in pos:
                             #genitive, add -i
-                            res.append(newVoc+"i")
-                        elif "NDA" in pos:
+                            res.append(newVoc + u"i")
+                        elif u"NDA" in pos:
                             #accusative, add -a
-                            res.append(newVoc+"a")
-                        elif "NDN" in pos:
+                            res.append(newVoc + u"a")
+                        elif u"NDN" in pos:
                             #nominative, add -u
-                            res.append(newVoc+"u")
+                            res.append(newVoc + u"u")
 
                     #adding newVoc after inflected, to get same output as FinalDiacritizer
                     res.append(newVoc)
@@ -450,17 +450,17 @@ def filterBamaWithTags(bama_pos, srilm_pos):
 
 
                 
-                elif "NU" in pos:
+                elif u"NU" in pos:
                     if addCaseEndings:
-                        if "NUG" in pos:
+                        if u"NUG" in pos:
                             #genitive, add -i
-                            res.append(voc+"i")
-                        elif "NUA" in pos:
+                            res.append(voc + u"i")
+                        elif u"NUA" in pos:
                             #accusative, add -a
-                            res.append(voc+"a")
-                        elif "NUN" in pos:
+                            res.append(voc + u"a")
+                        elif u"NUN" in pos:
                             #nominative, add -u
-                            res.append(voc+"u")
+                            res.append(voc + u"u")
                     res.append(voc)
                     
                 else:
@@ -475,11 +475,11 @@ def filterBamaWithTags(bama_pos, srilm_pos):
 
         i += 1
         
-    outfh = codecs.open("ptemp6.txt","w")
-    outfh.write("\n".join(res).strip())
+    outfh = codecs.open("ptemp6.txt", "w", "utf-8")
+    outfh.write(u"\n".join(res).strip())
     outfh.close()
 
-    return "\n".join(res).strip()
+    return u"\n".join(res).strip()
 
 
 
@@ -488,58 +488,59 @@ transliterate = {}
 #transliterate["{"] = u"ا" #//letter hamza al wasel
 
 
-transliterate["'"] = u"ء"
-transliterate["|"] = u"آ"
-transliterate[">"] = u"أ"
-transliterate["&"] = u"ؤ"
-transliterate["<"] = u"إ"
-transliterate["}"] = u"ئ"
-transliterate["A"] = u"ا"
-transliterate["b"] = u"ب"
-transliterate["p"] = u"ة"
-transliterate["t"] = u"ت"
-transliterate["v"] = u"ث"
-transliterate["j"] = u"ج"
-transliterate["H"] = u"ح"
-transliterate["x"] = u"خ"
-transliterate["d"] = u"د"
-transliterate["*"] = u"ذ"
-transliterate["r"] = u"ر"
-transliterate["z"] = u"ز"
-transliterate["s"] = u"س"
-transliterate["$"] = u"ش"
-transliterate["S"] = u"ص"
-transliterate["D"] = u"ض"
-transliterate["T"] = u"ط"
-transliterate["Z"] = u"ظ"
-transliterate["E"] = u"ع"
-transliterate["g"] = u"غ"
-transliterate["f"] = u"ف"
-transliterate["q"] = u"ق"
-transliterate["k"] = u"ك"
-transliterate["l"] = u"ل"
-transliterate["m"] = u"م"
-transliterate["n"] = u"ن"
-transliterate["h"] = u"ه"
-transliterate["w"] = u"و"
-transliterate["Y"] = u"ى"
-transliterate["y"] = u"ي"
-transliterate["P"] = u"ب"
-transliterate["J"] = u"ج"
-transliterate["V"] = u"ف"
-transliterate["G"] = u"ق"
+transliterate[u"'"] = u"ء"
+transliterate[u"|"] = u"آ"
+transliterate[u">"] = u"أ"
+transliterate[u"&"] = u"ؤ"
+transliterate[u"<"] = u"إ"
+transliterate[u"}"] = u"ئ"
+transliterate[u"A"] = u"ا"
+transliterate[u"b"] = u"ب"
+transliterate[u"p"] = u"ة"
+transliterate[u"t"] = u"ت"
+transliterate[u"v"] = u"ث"
+transliterate[u"j"] = u"ج"
+transliterate[u"H"] = u"ح"
+transliterate[u"x"] = u"خ"
+transliterate[u"d"] = u"د"
+transliterate[u"*"] = u"ذ"
+transliterate[u"r"] = u"ر"
+transliterate[u"z"] = u"ز"
+transliterate[u"s"] = u"س"
+transliterate[u"$"] = u"ش"
+transliterate[u"S"] = u"ص"
+transliterate[u"D"] = u"ض"
+transliterate[u"T"] = u"ط"
+transliterate[u"Z"] = u"ظ"
+transliterate[u"E"] = u"ع"
+transliterate[u"g"] = u"غ"
+transliterate[u"f"] = u"ف"
+transliterate[u"q"] = u"ق"
+transliterate[u"k"] = u"ك"
+transliterate[u"l"] = u"ل"
+transliterate[u"m"] = u"م"
+transliterate[u"n"] = u"ن"
+transliterate[u"h"] = u"ه"
+transliterate[u"w"] = u"و"
+transliterate[u"Y"] = u"ى"
+transliterate[u"y"] = u"ي"
+transliterate[u"P"] = u"ب"
+transliterate[u"J"] = u"ج"
+transliterate[u"V"] = u"ف"
+transliterate[u"G"] = u"ق"
+transliterate[u"-"] = u"-"
 
-transliterate["_"] = u""#//not a letter
+transliterate[u"_"] = u""#//not a letter
 
-transliterate["F"] = u"ً" #an
-transliterate["N"] = u"ٌ" #un
-transliterate["K"] = u"ٍ" #in
+transliterate[u"F"] = u"ً" #an
+transliterate[u"N"] = u"ٌ" #un
+transliterate[u"K"] = u"ٍ" #in
 #transliterate["a"] = u"َ " #a (broken)
-transliterate["a"] = u"َ" #a 
-transliterate["u"] = u"ُ" #u
-transliterate["i"] = u"ِ" #i
-transliterate["~"] = u"ّ" #
-transliterate["o"] = u"ْ" #
+transliterate[u"a"] = u"َ" #a 
+transliterate[u"u"] = u"ُ" #u
+transliterate[u"i"] = u"ِ" #i
+transliterate[u"~"] = u"ّ" #
+transliterate[u"o"] = u"ْ" #
 
 ar2bw_map = {}
 for bw in transliterate.keys():
@@ -557,14 +558,14 @@ def bw2ar(bw):
 
     ar_list = []
     for c in bw:
-        if re.match("[0-9]", c):
+        if re.match(u"[0-9]", c):
             ar_list.append(c)
         elif c in transliterate:
             ar_list.append(transliterate[c])
         else:
-            sys.stderr.write("WARNING: bw2ar %s not found, replacing with comma\n" % c)
-            ar_list.append(",")
-    ar = "".join(ar_list)
+            sys.stderr.write("WARNING: bw2ar %s not found, replacing with dash\n" % c)
+            ar_list.append(u"-")
+    ar = u"".join(ar_list)
     #sys.stderr.write("bw2ar: %s -> %s\n" % (bw,ar))
     return ar
 
@@ -572,15 +573,15 @@ def bw2ar(bw):
 def ar2bw(ar):
     bw_list = []
     for c in ar:
-        if re.match("[0-9]", c):
+        if re.match(u"[0-9]", c):
             bw_list.append(c)
         elif c in ar2bw_map:
             bw_list.append(ar2bw_map[c])
         else:
-            sys.stderr.write("WARNING: ar2bw %s not found, replacing with comma\n" % c)
-            bw_list.append(",")
+            sys.stderr.write("WARNING: ar2bw %s not found, replacing with dash\n" % c)
+            bw_list.append(u"-")
 
-    bw = "".join(bw_list)
+    bw = u"".join(bw_list)
     #sys.stderr.write("ar2bw: %s -> %s\n" % (ar,bw))
     return bw
 
@@ -588,14 +589,14 @@ def ar2bw(ar):
 def createBAMAMap(bama_filtered, ar_text):
 
     bw_words = []
-    for ar_word in ar_text.split(" "):
+    for ar_word in ar_text.split(u" "):
         bw_words.append(ar2bw(ar_word))
 
 
     
     ar_list = []
     for c in bama_filtered:
-        if c == " " or c == "\n":
+        if c == u" " or c == u"\n":
             ar_list.append(c)
         else:
             ar_list.append(bw2ar(c))
@@ -604,16 +605,16 @@ def createBAMAMap(bama_filtered, ar_text):
     text = bama_filtered
 
     res = []
-    res.append("<s> *noevent*")
+    res.append(u"<s> *noevent*")
 
-    entries = text.split("\n\n")
+    entries = text.split(u"\n\n")
     e = 0
     while e < len(entries):
         entry = entries[e]
         bw_word = bw_words[e]
         e += 1
 
-        options = entry.split("\n")
+        options = entry.split(u"\n")
         #options[0] is the unvocalised input, the rest are vocalised alternatives
         unvoc = options[0]
         options = options[1:]
@@ -633,19 +634,19 @@ def createBAMAMap(bama_filtered, ar_text):
                 alt = alts[i]
 
                 #If there is shadda+other diacritic in the input
-                if j+1 < len(bw_word) and bw_word[j] == "~" and bw_word[j+1] in "FNKauio":
-                    diacritics = ["~"+bw_word[j+1]]
+                if j+1 < len(bw_word) and bw_word[j] == u"~" and bw_word[j+1] in u"FNKauio":
+                    diacritics = [u"~"+bw_word[j+1]]
                     j += 2
 
                 #If there is a diacritic in the input
-                elif j < len(bw_word) and bw_word[j] in "FNKauio~":
+                elif j < len(bw_word) and bw_word[j] in u"FNKauio~":
                     diacritics = [bw_word[j]]
                     j += 1
                     
-                elif char in ["A"]:
-                    diacritics = ["None"]
+                elif char in [u"A"]:
+                    diacritics = [u"None"]
                 else:
-                    diacritics = ["None", "F", "N", "K", "a", "u", "i", "o", "~a", "~u", "~i"]
+                    diacritics = [u"None", u"F", u"N", u"K", u"a", u"u", u"i", u"o", u"~a", u"~u", u"~i"]
                 for diacritic in diacritics:
                     alt.append(diacritic)
                 i += 1
@@ -665,17 +666,17 @@ def createBAMAMap(bama_filtered, ar_text):
                     #Why is that? In the example that happens for the first l in
                     #AlTfl, and for y in AlwZyfp
                     #Is it correct? It looks odd.
-                    if voc_char in "FNKauio":                        
+                    if voc_char in u"FNKauio":                        
                         alts[i].append(voc_char)
                         j += 1
-                    elif voc_char == "~":                        
+                    elif voc_char == u"~":                        
                         #If shadda: look at following char too
                         #alts[i].append(voc_char)
                         j += 1
                         if j < len(option): 
                             next_voc_char = option[j]
-                            if next_voc_char in "FNKauio":                        
-                                alts[i].append("%s%s" % (voc_char,next_voc_char))
+                            if next_voc_char in u"FNKauio":                        
+                                alts[i].append(u"%s%s" % (voc_char,next_voc_char))
                                 j += 1
                             else:
                                 alts[i].append(voc_char)
@@ -683,11 +684,11 @@ def createBAMAMap(bama_filtered, ar_text):
                             alts[i].append(voc_char)
 
                     else:
-                        alts[i].append("None")
+                        alts[i].append(u"None")
                         
                     j += 1
                 else:
-                    alts[i].append("None")
+                    alts[i].append(u"None")
 
                 i += 1
 
@@ -711,43 +712,36 @@ def createBAMAMap(bama_filtered, ar_text):
             srilm_data = []
             srilm_data.append(bw2ar(unvoc[i]))
             for alt in alts[i]:
-                if alt == "None":
-                    srilm_data.append("<%s>" % "u")
+                if alt == u"None":
+                    srilm_data.append(u"<%s>" % u"u")
                 else:
-                    srilm_data.append("<%s>" % bw2ar(alt) )
+                    srilm_data.append(u"<%s>" % bw2ar(alt) )
 
-                srilm_data.append("%f" % float(1.0/len(alts[i])) )
+                srilm_data.append(u"%f" % float(1.0/len(alts[i])) )
             #sys.stderr.write(" ".join(srilm_data))
 
             res.append(" ".join(srilm_data))
             i += 1
 
-        res.append("s *noevent*")
+        res.append(u"s *noevent*")
 
-    res.append("</s> *noevent*")
+    res.append(u"</s> *noevent*")
 
     outfh = codecs.open("ptemp7.txt","w", "utf-8")
-    outfh.write("\n".join(res))
+    outfh.write(u"\n".join(res))
     outfh.close()
 
-    return "\n".join(res)
+    return u"\n".join(res)
 
-
-    
-
-
-
-
-    
 
 def runSRILMdiacritics(bama_map):
-    outfh = codecs.open("ptemp7.txt","w", "utf-8")
+    outfh = codecs.open("ptemp7.txt", "w", "utf-8")
     outfh.write(bama_map)
     outfh.close()
 
-    os.system("./ngram/hidden-ngram -lm ngram/DiacNgrams/ngram5.txt -order 5 -text-map ptemp7.txt -hidden-vocab ngram/DiacNgrams/vocab.txt > ptemp8.txt")
+    os.system("./ngram/hidden-ngram -lm ./ngram/DiacNgrams/ngram5.txt -order 5 -text-map ptemp7.txt -hidden-vocab ./ngram/DiacNgrams/vocab.txt > ptemp8.txt")
 
-    infh = codecs.open("ptemp8.txt","r")
+    infh = codecs.open("ptemp8.txt", "r", "utf-8")
     srilm_diacritics = infh.read()
     infh.close()
     return srilm_diacritics
@@ -757,32 +751,32 @@ def cleanOutput(srilm_diacritics):
     #Trivial processing of the SRILM n-gram output.
     output = srilm_diacritics
 
-    sys.stderr.write("BEFORE: "+output+"\n")
+    sys.stderr.write(u"BEFORE: " + output + u"\n")
 
-    output = re.sub("<s> ", "", output)
-    output = re.sub(" </s>", "", output)
+    output = re.sub(u"<s> ", u"", output)
+    output = re.sub(u" </s>", u"", output)
     #output = re.sub("</s>", "", output)
     #output = re.sub(@"[\s]", "", output)
-    output = re.sub("\s", "", output)
-    output = re.sub("s", " ", output)
-    output = re.sub("<u>", "", output)
+    output = re.sub(u"\s", u"", output)
+    output = re.sub(u"s", u" ", output)
+    output = re.sub(u"<u>", u"", output)
     #output = re.sub("(.noevent.)", "", output)
     #output = re.sub("([\w])<([\u064B\u064C\u064D\u064E\u064F\u0650\u0651\u0652\u0670]+)>", "$1$2", output)
 
-    output = re.sub("(.)<([^>]+)>", r"\1\2", output)
+    output = re.sub(u"(.)<([^>]+)>", u"\\1\\2", output)
 
     #For punctuation
     #sys.stderr.write("BEFORE: "+output+"\n")
-    output = re.sub("unk<[^>]+>", ",", output)
-    output = re.sub("unk", ",", output)
+    output = re.sub(u"unk<[^>]+>", u",", output)
+    output = re.sub(u"unk", u",", output)
 
 
-    sys.stderr.write("AFTER:  "+output+"\n")
+    sys.stderr.write(u"AFTER:  " + output + u"\n")
 
     #output = re.sub("[\\s]*(\\p{P})[\\s]*", " \1 ", output)
-    output = re.sub("\s+", " ", output)
+    output = re.sub(u"\s+", u" ", output)
 
-    outfh = codecs.open("ptemp9.txt","w")
+    outfh = codecs.open("ptemp9.txt", "w", "utf-8")
     outfh.write(output)
     outfh.close()
 
@@ -794,7 +788,7 @@ def cleanOutput(srilm_diacritics):
 
 ###########################################################################
 
-def vocalise(ar_text):
+def vocalise(ar_text, addCaseEndings):
     # 1a) preprocessBeforeBama > temp0.txt
     # 1) Run BAMA to get postags (In: arabic (w1256), Out: bw (w1252) (Det måste tydligen vara windows-1256 för att Bama ska fungera..)
     # aramorph.sh temp0.txt temp1.txt
@@ -849,7 +843,7 @@ def vocalise(ar_text):
     sys.stderr.write(bama_pos)
     sys.stderr.write("\n-------------------------\n")
 
-    bama_filtered = filterBamaWithTags(bama_pos, srilm_pos)
+    bama_filtered = filterBamaWithTags(bama_pos, srilm_pos, addCaseEndings)
     sys.stderr.write("-----Filtered output-----\n")
     sys.stderr.write(bama_filtered)
     sys.stderr.write("\n-------------------------\n")
@@ -887,17 +881,17 @@ if len(sys.argv) > 1 and sys.argv[1] == "server":
 #        if "o" in ar_text:
 #            return ar_text
         res = []
-        for ar_sent in ar_text.split("."):
-            res.append(vocalise(ar_sent.strip()))
+        for ar_sent in ar_text.split(u"."):
+            res.append(vocalise(ar_sent.strip(), True))
         return ". ".join(res)
 
     if __name__ == "__main__":
         app.run(debug=True, port=8080)
 
-else:
+#else:
     #ar_text = u"كتب الطفل الوظيفة"
     #ar_text = sys.stdin.read()
-    ar_text = codecs.getreader("utf-8")(sys.stdin).read().strip()
-    vocalised = vocalise(ar_text)
-    print vocalised
+    #ar_text = codecs.getreader("utf-8")(sys.stdin).read().strip()
+    #vocalised = vocalise(ar_text, True)
+    #print vocalised
 
